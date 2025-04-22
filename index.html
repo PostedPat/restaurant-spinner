@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Restaurant Picker Wheel</title>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      text-align: center;
+      background: radial-gradient(circle at center, #0b0c2a 0%, #000000 100%);
+      color: #fff;
+    }
+    canvas {
+      margin-top: 20px;
+      background: #111;
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      cursor: pointer;
+    }
+    h1 {
+      margin-top: 20px;
+      font-size: 2rem;
+    }
+    .sparkle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.8;
+      animation: sparkle 1s linear;
+    }
+    @keyframes sparkle {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <h1>🚀 Restaurant Picker Wheel 🌌</h1>
+  <input type="text" id="restaurantInput" placeholder="Enter restaurant name" />
+  <button onclick="addRestaurant()">Add</button>
+  <button onclick="spinWheel()">Spin</button>
+  <button onclick="spinWheel()">Spin Again</button>
+  <p><strong>Restaurants:</strong> <span id="restaurantList"></span></p>
+  <canvas id="wheel" width="400" height="400"></canvas>
+  <audio id="spinSound" src="https://freesound.org/data/previews/256/256113_3263906-lq.mp3"></audio>
+
+  <script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const spinSound = document.getElementById('spinSound');
+    let restaurants = [];
+    let angle = 0;
+    let spinning = false;
+
+    function addRestaurant() {
+      const input = document.getElementById('restaurantInput');
+      if (input.value.trim() !== '') {
+        restaurants.push(input.value.trim());
+        input.value = '';
+        updateRestaurantList();
+        drawWheel();
+      }
+    }
+
+    function updateRestaurantList() {
+      document.getElementById('restaurantList').textContent = restaurants.join(', ');
+    }
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = 180;
+      const sliceAngle = (2 * Math.PI) / restaurants.length;
+
+      restaurants.forEach((restaurant, i) => {
+        const startAngle = angle + i * sliceAngle;
+        const endAngle = startAngle + sliceAngle;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.fillStyle = `hsl(${i * (360 / restaurants.length)}, 80%, 55%)`;
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const pegAngle = startAngle;
+        const pegX = centerX + Math.cos(pegAngle) * radius;
+        const pegY = centerY + Math.sin(pegAngle) * radius;
+        ctx.beginPath();
+        ctx.arc(pegX, pegY, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px Orbitron';
+        ctx.fillText(restaurant, radius - 10, 5);
+        ctx.restore();
+      });
+
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.moveTo(centerX - 10, centerY - radius - 15);
+      ctx.lineTo(centerX + 10, centerY - radius - 15);
+      ctx.lineTo(centerX, centerY - radius + 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function createSparkle(x, y) {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      sparkle.style.left = `${x}px`;
+      sparkle.style.top = `${y}px`;
+      document.body.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 1000);
+    }
+
+    function spinWheel() {
+      if (restaurants.length === 0 || spinning) return;
+      spinning = true;
+      spinSound.play();
+      let velocity = Math.random() * 0.3 + 0.2;
+      const deceleration = 0.992;
+
+      const spin = () => {
+        angle += velocity;
+        angle %= 2 * Math.PI;
+        velocity *= deceleration;
+        drawWheel();
+
+        if (Math.random() < 0.05) {
+          const sparkleX = canvas.offsetLeft + 200 + Math.random() * 200 - 100;
+          const sparkleY = canvas.offsetTop + 200 + Math.random() * 200 - 100;
+          createSparkle(sparkleX, sparkleY);
+        }
+
+        if (velocity < 0.002) {
+          spinning = false;
+          const sliceAngle = (2 * Math.PI) / restaurants.length;
+          const pointerAngle = (3 * Math.PI / 2 - angle + 2 * Math.PI) % (2 * Math.PI);
+          const index = Math.floor(pointerAngle / sliceAngle) % restaurants.length;
+          setTimeout(() => alert(`You're going to: ${restaurants[index]}!`), 100);
+        } else {
+          requestAnimationFrame(spin);
+        }
+      };
+      spin();
+    }
+  </script>
+</body>
+</html>
